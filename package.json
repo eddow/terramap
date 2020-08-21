@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "three": "^0.119.1",
+    "typescript.events": "^7.9.0",
     "webgl": "0.0.7"
   }
 }

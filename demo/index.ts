@@ -6,7 +6,7 @@ var container, clock;
 
 var camera, scene, renderer;
 
-var lines = [];
+var lines = [], meshes = [];
 
 var segments = 4;
 var r = 800;
@@ -27,41 +27,81 @@ function init() {
 	camera.position.z = 2750;
 
 	scene = new THREE.Scene();
+	scene.background = new THREE.Color( 0x050505 );
+	scene.fog = new THREE.Fog( 0x050505, 2000, 3500 );
+
+	//
+
+	scene.add( new THREE.AmbientLight( 0x888888 ) );
+
+	var light1 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+	light1.position.set( 1, 1, 1 );
+	scene.add( light1 );
+
+	var light2 = new THREE.DirectionalLight( 0xffffff, 1.5 );
+	light2.position.set( 0, - 1, 0 );
+	scene.add( light2 );
 
 	clock = new THREE.Clock();
 
-	var material = new THREE.LineBasicMaterial( { vertexColors: true, morphTargets: true } );
+	var wireMaterial = new THREE.LineBasicMaterial( { vertexColors: true, morphTargets: true } );
+	var meshMaterial = new THREE.MeshPhongMaterial( {
+		color: 0xaaaaaa, specular: 0xffffff, shininess: 250,
+		side: THREE.FrontSide, vertexColors: true
+	} );
+	var white = Array(12).fill(1), grey = Array(9).fill(0.9);
+	var pA = new THREE.Vector3();
+	var pB = new THREE.Vector3();
+	var pC = new THREE.Vector3();
+
+	var cb = new THREE.Vector3();
+	var ab = new THREE.Vector3();
 	for(let face of terra.faces) {
-		let geometry = new THREE.BufferGeometry();
 		let positions = [];
-		let colors = [];
+		let normals = [];
 
 		for(let point of face.points) {
-			let [x, y, z] = point.coords;
-
-			// positions
-
-			positions.push( x, y, z );
-
-			// colors
-
-			colors.push( ( x / r ) + 0.5 );
-			colors.push( ( y / r ) + 0.5 );
-			colors.push( ( z / r ) + 0.5 );
-
+			positions.push(...point.coords);
 		}
+		
+		pA.set(face.points[0].coords[0], face.points[0].coords[1], face.points[0].coords[2]);
+		pB.set(face.points[1].coords[0], face.points[1].coords[1], face.points[1].coords[2]);
+		pC.set(face.points[2].coords[0], face.points[2].coords[1], face.points[2].coords[2]);
 
-		positions.push(positions[0], positions[1], positions[2]);
-		colors.push(colors[0], colors[1], colors[2]);
+		cb.subVectors( pC, pB );
+		ab.subVectors( pA, pB );
+		cb.cross( ab );
 
-		geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
-		geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+		cb.normalize();
 
+		var nx = cb.x;
+		var ny = cb.y;
+		var nz = cb.z;
+
+		normals.push(nx, ny, nz);
+		normals.push(nx, ny, nz);
+		normals.push(nx, ny, nz);
+
+		let geometry = new THREE.BufferGeometry();
+		geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+		geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+		geometry.setAttribute('color', new THREE.Float32BufferAttribute(grey, 3));
 		geometry.computeBoundingSphere();
 
-		let line = new THREE.Line( geometry, material );
+		let mesh = new THREE.Mesh( geometry, meshMaterial );
+		scene.add(mesh);
+		meshes.push(mesh);
+
+		geometry = new THREE.BufferGeometry();
+		positions.push(...face.points[0].coords);
+		geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+		geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( white, 3 ) );
+		geometry.computeBoundingSphere();
+
+		let line = new THREE.Line( geometry, wireMaterial );
 		scene.add(line);
 		lines.push(line);
+		face.d3Object = {line, mesh};
 	}
 	//
 
@@ -102,7 +142,7 @@ function render() {
 	var delta = clock.getDelta();
 	var time = clock.getElapsedTime();
 
-	for(let line of lines) {
+	for(let line of [...lines, ...meshes]) {
 		line.rotation.x = time * 0.25;
 		line.rotation.y = time * 0.5;
 	}

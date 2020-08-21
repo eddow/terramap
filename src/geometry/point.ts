@@ -1,7 +1,10 @@
 export type Coords = [number, number, number];
 export default class Point {
 	coords: Coords;
-	constructor(x: number, y: number, z: number, scale: number = 1) {
-		this.coords = [x, y, z].map(x => x * scale) as Coords;
+	height: number;
+	constructor(coords: [number, number, number], height: number = 1) {
+		let [x, y, z] = coords;
+		let actualHeight = Math.sqrt(x*x + y*y + z*z);
+		this.coords = coords.map(x => x * height/actualHeight) as Coords;
 	}
 }
