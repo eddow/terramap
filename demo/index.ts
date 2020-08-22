@@ -8,14 +8,13 @@ terra.on('remove', removeFace);
 terra.on('divided', dividedFace);
 init();
 
-
 for(let face of terra.faces) {
-	addFace(face);
+	face.add();
 }
+
 var edges: Edge[] = terra.edges;
 for(let edge of edges) edge.divide();
-//for(let edge of edges) if(!edge.middle) edge.divide();
-for(let i=6; i<7; ++i) edges[i].divide();
+for(let edge of edges) if(!edge.middle) edge.divide();
 animate();
 
 function dividedFace(face: Triangle) {
@@ -29,5 +28,5 @@ function addFace(face: Triangle) {
 }
 
 export function removeFace(face: Triangle) {
-	face.data.remove()
+	face.data.remove();
 }

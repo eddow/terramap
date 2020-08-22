@@ -15,9 +15,26 @@ export default class Triangle implements TriangleInterface {
 		this.data = data;
 		this.innerEdges = [];
 		this.outerEdges = edges;
-		edges.forEach(dg=> {
-			dg.borderOf  ??= this;
+	}
+	add() {
+		this.outerEdges.forEach(dg=> {
+			dg.borderOf ??= this;
 		});
+		this.TM.emit('add', this);
+	}
+	remove(markEdges: boolean = true) {
+		if(markEdges) this.outerEdges.forEach(dg=> {
+			if(dg.borderOf === this) delete dg.borderOf;
+		});
+		this.TM.emit('remove', this);
+	}
+	addSub(edges: Edges) {
+		(new Triangle(this.TM, edges)).add();
+	}
+	divide() {
+		for(let e of this.outerEdges)
+			if(!e.middle)
+				e.edge.divide();
 	}
 	@LazyGetter()
 	get points(): TrianglePoints {
@@ -32,38 +49,34 @@ export default class Triangle implements TriangleInterface {
 		return points;
 	}
 	cut(index: number, subEdges: [Edge, Edge]) {
-		let middle = subEdges[0].ends[1];
-		let midEdge;
+		let middle = subEdges[0].ends[1], midEdge;
 		console.assert(middle === subEdges[1].ends[1], "Edge division consistant: [AM, BM]");
 		switch(this.innerEdges.length) {
 		case 0:
 			midEdge = new Edge(this.TM, [middle, this.outerEdges[index].orderedPoints[0]]);
 			midEdge.referents = [null];
 			this.innerEdges[0] = midEdge;
-			this.TM.emit('remove', this);
+			this.remove(false);
 			for(let i=0; i<2; ++i) {
 				let sideEdge = this.outerEdges[(index+i+2)%3];
 				midEdge.referents[i] = sideEdge.edge;
 				let extrPt = sideEdge.orderedPoints[i];
 				let subEdge = subEdges[0];
-				let iop = subEdge.ends.indexOf(extrPt);
-				if(!~iop) {
+				if(!~subEdge.ends.indexOf(extrPt)) {
 					subEdge = subEdges[1];
-					iop = subEdge.ends.indexOf(extrPt);
 				}
-				let subTriangle = new Triangle(this.TM, i?
+				this.addSub(i?
 					[sideEdge, subEdge.directed[0], midEdge.directed[0]]:
 					[subEdge.directed[1], sideEdge, midEdge.directed[1]]
 				);
-				this.TM.emit('add', subTriangle);
 			}
 			break;
 		case 1:
 			midEdge = this.innerEdges[0];
-			this.TM.emit('remove', midEdge.directed[0].borderOf);
-			this.TM.emit('remove', midEdge.directed[1].borderOf);
+			midEdge.directed[0].borderOf.remove();
+			midEdge.directed[1].borderOf.remove();
 			let undividedNdx = this.outerEdges.findIndex(edge=> !edge.middle);
-			console.assert(~undividedNdx, "There exist one undivuded side when only one innerEdge")
+			console.assert(~undividedNdx, "There exist one undivided side when only one innerEdge")
 			let undivided = this.outerEdges[undividedNdx],
 				nEdge = this.outerEdges[(undividedNdx+1)%3],	//next edge (from undivided)
 				pEdge = this.outerEdges[(undividedNdx+2)%3],	//previous edge (from undivided)
@@ -83,35 +96,34 @@ export default class Triangle implements TriangleInterface {
 			this.innerEdges = [barEdge, crossEdge];
 			crossEdge.referents = barEdge.referents = [undivided.edge];
 			// parralelipiped half - along the outer-edge
-			this.TM.emit('add', new Triangle(this.TM, [undivided, pEdges.nxt.directed[0], crossEdge.directed[0]]));
+			this.addSub([undivided, pEdges.nxt.directed[0], crossEdge.directed[0]]);
 			// parralelipiped half - along the inner-edge
-			this.TM.emit('add', new Triangle(this.TM, [barEdge.directed[0], pEdges.prv.directed[1], crossEdge.directed[1]]));
+			this.addSub([barEdge.directed[0], pEdges.prv.directed[1], crossEdge.directed[1]]);
 			// sub-triangle remaining on over-division
-			this.TM.emit('add', new Triangle(this.TM, [stEdges.nxt.directed[1], stEdges.prv.directed[0], barEdge.directed[1]]));
+			this.addSub([stEdges.nxt.directed[1], stEdges.prv.directed[0], barEdge.directed[1]]);
 			break;
 		case 2:
 			let already = this.innerEdges[0];
 			delete already.referents;
 			midEdge = this.innerEdges[1];
-			this.TM.emit('remove', midEdge.directed[0].borderOf);
-			this.TM.emit('remove', midEdge.directed[1].borderOf);
+			midEdge.directed[0].borderOf.remove();
+			midEdge.directed[1].borderOf.remove();
 
 			index = (index+1)%3;
 			if(index) this.innerEdges[index] = this.innerEdges[0];
 			this.innerEdges[(index+1)%3] = new Edge(this.TM, [already.ends[1], middle]);
 			this.innerEdges[(index+2)%3] = new Edge(this.TM, [middle, already.ends[0]]);
-
+			this.TM.emit('divided', this);
 			// inside sub-triangle
-			this.TM.emit('add', new Triangle(this.TM, <Edges>this.innerEdges.map(edge => edge.directed[0])));
+			this.addSub(<Edges>this.innerEdges.map(edge => edge.directed[0]));
 			for(let i = index+1; (i=i%3) !== index; ++i) {
 				let extSummit = this.points[(i+2)%3],
 					nEdge = this.outerEdges[(i+1)%3],
 					pEdge = this.outerEdges[(i+2)%3];
 				nEdge = nEdge.division[nEdge.division[0].ends[0] === extSummit ? 0 : 1].directed[1];
 				pEdge = pEdge.division[pEdge.division[0].ends[0] === extSummit ? 0 : 1].directed[0];
-				this.TM.emit('add', new Triangle(this.TM, [this.innerEdges[i].directed[1], nEdge, pEdge]));
+				this.addSub([this.innerEdges[i].directed[1], nEdge, pEdge]);
 			}
-			this.TM.emit('divided', this);
 			break;
 		default:
 			console.assert(false, "Cut only uncut triangles")

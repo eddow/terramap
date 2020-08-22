@@ -41,6 +41,7 @@ export default class Edge {
 		for(let i in this.directed) {
 			let directed = this.directed[i];
 			let triangle = directed.borderOf;
+			console.assert(triangle, "All directed edges are bording a triangle");
 			console.assert(triangle.innerEdges.length < 3, "No edge over-division");
 			var opposite = triangle.points.findIndex(p => !~ends.indexOf(p));
 			triangle.cut(opposite, this.division);
