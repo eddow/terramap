@@ -30,6 +30,7 @@ var ab = new THREE.Vector3();
 init();
 terra.edges[0].divide();
 terra.edges[1].divide();
+terra.edges[3].divide();
 animate();
 
 function addFace(face: Triangle) {

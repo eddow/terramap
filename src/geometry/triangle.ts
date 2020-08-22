@@ -58,14 +58,38 @@ export default class Triangle extends Event implements TriangleInterface {
 			midEdge = this.innerEdges[0];
 			this.emit('remove', midEdge.directed[0].borderOf);
 			this.emit('remove', midEdge.directed[1].borderOf);
-			var undividedNdx = this.outerEdges.findIndex(edge=> !edge.middle);
-			var barEdge = new Edge([	//The one that will stay in full division
-				this.outerEdges[(undividedNdx+1)%3].middle,
-				this.outerEdges[(undividedNdx+2)%3].middle
-			]);
-			throw "todo";
+			var undividedNdx = this.outerEdges.findIndex(edge=> !edge.middle),
+				undivided = this.outerEdges[undividedNdx],
+				nEdge = this.outerEdges[(undividedNdx+1)%3],	//next edge (from undivided)
+				pEdge = this.outerEdges[(undividedNdx+2)%3],	//previous edge (from undivided)
+				barEdge = new Edge([	//The one that will stay in full division
+					nEdge.middle,
+					pEdge.middle
+				]), crossEdge = new Edge([	//The one that crosses the parallelipiped
+					nEdge.middle,
+					undivided.orderedPoints[0]
+				]),
+				peNdx = {	//parralelipiped edge, sub-triangle edge
+					nxt: (undivided.orderedPoints[1] === nEdge.division[0].ends[0]) ? 0 : 1,
+					prv: (undivided.orderedPoints[0] === pEdge.division[0].ends[0]) ? 0 : 1,
+				},
+				pEdges = {nxt: nEdge.division[peNdx.nxt], prv: pEdge.division[peNdx.prv]},
+				stEdges = {nxt: nEdge.division[1-peNdx.nxt], prv: pEdge.division[1-peNdx.prv]};
+			this.innerEdges = [barEdge, crossEdge];
+			crossEdge.referents = barEdge.referents = [
+				(barEdge.directed[0].parent = barEdge.directed[1].parent = undivided).edge
+			];
+			// parralelipiped half - along the outer-edge
+			this.emit('add', new Triangle([undivided, pEdges.nxt.directed[0], crossEdge.directed[1]]));
+			// parralelipiped half - along the inner-edge
+			this.emit('add', new Triangle([barEdge.directed[0], pEdges.prv.directed[1], crossEdge.directed[1]]));
+			// sub-triangle remaining on over-division
+			this.emit('add', new Triangle([stEdges.nxt.directed[1], stEdges.prv.directed[0], barEdge.directed[1]]));
 			break;
 		case 2:
+			midEdge = this.innerEdges[0];
+			this.emit('remove', midEdge.directed[0].borderOf);
+			this.emit('remove', midEdge.directed[1].borderOf);
 			throw "todo";
 			break;
 		}

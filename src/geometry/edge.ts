@@ -38,18 +38,8 @@ export default class Edge {
 			let directed = this.directed[i];
 			let triangle = directed.borderOf;
 			console.assert(triangle.innerEdges.length < 3, "No edge over-division");
-			switch(triangle.innerEdges.length) {
-			case 0:
-				var opposite = triangle.points.findIndex(p => !~ends.indexOf(p));
-				triangle.cut(opposite, this.division);
-				break;
-			case 1:
-				throw "todo";
-				break;
-			case 2:
-				throw "todo";
-				break;
-			}
+			var opposite = triangle.points.findIndex(p => !~ends.indexOf(p));
+			triangle.cut(opposite, this.division);
 		}
 	}
 }
@@ -63,10 +53,7 @@ export class DirectedEdge {
 	}
 	@LazyGetter()
 	get orderedPoints() : Ends {
-		var inverse = false;
-		for(let browser : DirectedEdge = this; browser; browser = browser.parent)
-			inverse = inverse != browser.inverted;
-		return inverse ? [this.ends[1], this.ends[0]] : this.ends;
+		return this.inverted ? [this.ends[1], this.ends[0]] : this.ends;
 	}
 
 ////// Forwards
