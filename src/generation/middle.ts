@@ -1,32 +1,46 @@
 import {Generation} from '../terraMap.h'
-import Point from '../geometry/point'
+import {LazyGetter} from 'lazy-get-decorator'
 
 export type Coords = [number, number, number];
 
-function makePointData(coords: Coords, height: number, colors: number[]) {
-	let [x, y, z] = coords;
-	let actualHeight = Math.sqrt(x*x + y*y + z*z);
-	return {
-		height: height,
-		coords: <Coords>coords.map(x => x * height/actualHeight),
-		colors
-	};
+export class Point {
+	coords: Coords
+	colors: Coords
+	constructor(coords: Coords, height: number, colors: Coords) {
+		let [x, y, z] = coords;
+		let actualHeight = Math.sqrt(x*x + y*y + z*z);
+		this.coords = <Coords>coords.map(x => x * height/actualHeight);
+		this.colors = colors;
+	}
+	@LazyGetter()
+	get height(): number {
+		let [x, y, z] = this.coords;
+		return Math.sqrt(x*x + y*y + z*z);
+	}
 }
-export default (scale: number = 1): Generation=> {
+/*
+class EdgeData {}
+class TriangleData {}
+
+export class Edge extends GEdge<EdgeData, Point> {}
+export class Triangle extends GTriangle<TriangleData, EdgeData, Point> {}
+export class TerraMap extends GTerraMap<TriangleData, EdgeData, Point> {}*/
+
+export default (scale: number = 1): Generation<Point>=> {
 	const s30 = Math.sin(30*Math.PI/180), c30 = Math.cos(30*Math.PI/180);
 	return {
 		initials: [
-			makePointData([0, 0, 1], scale, [.5, .5, .5]),
-			makePointData([0, c30, -s30], scale, [1, 0, 0]),
-			makePointData([c30*c30, -c30*s30, -s30], scale, [0, 1, 0]),
-			makePointData([-c30*c30, -c30*s30, -s30], scale, [0, 0, 1])
+			new Point([0, 0, 1], scale, [.5, .5, .5]),
+			new Point([0, c30, -s30], scale, [1, 0, 0]),
+			new Point([c30*c30, -c30*s30, -s30], scale, [0, 1, 0]),
+			new Point([-c30*c30, -c30*s30, -s30], scale, [0, 0, 1])
 		],
 		pointComputer(points: [Point, Point]): Point {
-			return new Point(makePointData(
-				<Coords>[0,1,2].map(i=> (points[0].data.coords[i]+points[1].data.coords[i])/2),
-				(points[0].data.height+points[1].data.height)/2,
-				points[0].data.colors.map((c, i)=> (c+points[1].data.colors[i])/2)
-			));
+			return new Point(
+				<Coords>[0,1,2].map(i=> (points[0].coords[i]+points[1].coords[i])/2),
+				(points[0].height+points[1].height)/2,
+				<Coords>points[0].colors.map((c, i)=> (c+points[1].colors[i])/2)
+			);
 		}
 	};
 };

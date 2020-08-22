@@ -1,8 +1,6 @@
-import TerraMap, {Triangle, Edge} from 'terramap'
-import {init, animate, createFace} from './threeIrf'
-import middle from 'terramap/generation/middle'
+import {init, animate, createFace, TerraMap, Triangle, Edge, Point} from './threeIrf'
 
-var terra = new TerraMap(middle(400));
+var terra = new TerraMap(400);
 terra.on('add', addFace);
 terra.on('remove', removeFace);
 terra.on('divided', dividedFace);
@@ -23,7 +21,7 @@ function dividedFace(face: Triangle) {
 
 function addFace(face: Triangle) {
 	if(!face.data)
-		face.data = createFace(face.points.map(p=> p.data));
+		face.data = createFace(face.points);
 	face.data.add();
 }
 

@@ -1,11 +1,10 @@
 import {Event} from 'typescript.events'
-import Point from './geometry/point'
 
-export type PointComputer = (points: [Point, Point])=> Point
-export interface Generation {
-	initials: [any, any, any, any];
-	pointComputer: PointComputer;
+export type PointComputer<P> = (points: [P, P])=> P
+export interface Generation<P> {
+	initials: [P, P, P, P];
+	pointComputer: PointComputer<P>;
 }
-export default class ITerraMap extends Event {
-	pointComputer: PointComputer;
+export default class ITerraMap<P> extends Event {
+	pointComputer: PointComputer<P>;
 }

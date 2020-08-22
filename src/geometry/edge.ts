@@ -1,32 +1,31 @@
-import Point from './point'
 import ITerraMap from '../terraMap.h'
 import {LazyGetter} from 'lazy-get-decorator'
 
-export type Ends = [Point, Point];
+export type Ends<P> = [P, P];
 
-export type TrianglePoints = [Point, Point, Point];
-export interface TriangleInterface {
-	outerEdges: [DirectedEdge, DirectedEdge, DirectedEdge];
-	innerEdges: [Edge?, Edge?, Edge?];
-	points: TrianglePoints;
-	cut(index: number, subEdges: [Edge, Edge]);
+export type TrianglePoints<P> = [P, P, P];
+export interface ITriangle<E,P> {
+	outerEdges: [DirectedEdge<E,P>, DirectedEdge<E,P>, DirectedEdge<E,P>];
+	innerEdges: [Edge<E,P>?, Edge<E,P>?, Edge<E,P>?];
+	points: TrianglePoints<P>;
+	cut(index: number, subEdges: [Edge<E,P>, Edge<E,P>]);
 }
 
-export default class Edge {
-	TM: ITerraMap
-	ends: Ends;
-	middle?: Point;
-	division?: [Edge, Edge];
-	referents?: [Edge, Edge?]
-	data: any
-	constructor(TM: ITerraMap, ends: Ends, data?: any) {
+export default class Edge<E,P> {
+	TM: ITerraMap<P>
+	ends: Ends<P>;
+	middle?: P;
+	division?: [Edge<E,P>, Edge<E,P>];
+	referents?: [Edge<E,P>, Edge<E,P>?]
+	data: E
+	constructor(TM: ITerraMap<P>, ends: Ends<P>, data?: E) {
 		this.TM = TM;
 		this.data = data;
 		this.ends = ends;
 	}
 	@LazyGetter()
-	get directed(): [DirectedEdge, DirectedEdge] {
-		return [new DirectedEdge(this, 0), new DirectedEdge(this, 1)];
+	get directed(): [DirectedEdge<E,P>, DirectedEdge<E,P>] {
+		return [new DirectedEdge<E,P>(this, 0), new DirectedEdge<E,P>(this, 1)];
 	}
 
 	divide() {
@@ -35,8 +34,8 @@ export default class Edge {
 		const ends = this.ends;
 		this.middle = this.TM.pointComputer([ends[0], ends[1]]);
 		this.division = [
-			new Edge(this.TM, [this.ends[0], this.middle]),
-			new Edge(this.TM, [this.ends[1], this.middle])
+			new Edge<E,P>(this.TM, [this.ends[0], this.middle]),
+			new Edge<E,P>(this.TM, [this.ends[1], this.middle])
 		];
 		for(let i in this.directed) {
 			let directed = this.directed[i];
@@ -49,22 +48,21 @@ export default class Edge {
 	}
 }
 
-export class DirectedEdge {
-	edge: Edge
+export class DirectedEdge<E,P> {
+	edge: Edge<E,P>
 	inverted: boolean
-	constructor(edge: Edge, inverted: number|boolean) {
+	constructor(edge: Edge<E,P>, inverted: number|boolean) {
 		this.edge = edge;
 		this.inverted = !!inverted;
 	}
 	@LazyGetter()
-	get orderedPoints() : Ends {
+	get orderedPoints() : Ends<P> {
 		return this.inverted ? [this.ends[1], this.ends[0]] : this.ends;
 	}
 
 ////// Forwards
-	get ends(): Ends { return this.edge.ends; }
-	parent?: DirectedEdge;
-	get middle(): Point|undefined { return this.edge.middle; }
-	get division(): [Edge, Edge]|undefined { return this.edge.division; }
-	borderOf: TriangleInterface;
+	get ends(): Ends<P> { return this.edge.ends; }
+	get middle(): P|undefined { return this.edge.middle; }
+	get division(): [Edge<E,P>, Edge<E,P>]|undefined { return this.edge.division; }
+	borderOf: ITriangle<E,P>;
 }

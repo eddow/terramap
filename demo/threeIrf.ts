@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-
+import middle, {Point} from 'terramap/generation/middle'
+export {Point} from 'terramap/generation/middle'
+import GTerraMap, {GEdge, GTriangle} from 'terramap'
 var container;
 
 export var camera, scene;
@@ -27,12 +29,12 @@ export function init() {
 
 	//
 
-	camera = new THREE.PerspectiveCamera( 27, window.innerWidth / window.innerHeight, 1, 4000 );
+	camera = new THREE.PerspectiveCamera( 27, window.innerWidth / window.innerHeight, 1, 5000 );
 	camera.position.z = 2750;
 
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color( 0x050505 );
-	scene.fog = new THREE.Fog( 0x050505, 2000, 3500 );
+	scene.fog = new THREE.Fog( 0x050505, 2000, 5000 );
 
 	//
 
@@ -103,7 +105,7 @@ class D3Rendered {
 	}
 }
 
-export function createFace(data: any): any {
+export function createFace(data: [Point, Point, Point]): D3Rendered {
 	let positions = [];
 	let normals = [];
 	var colrsV = [];
@@ -147,6 +149,17 @@ export function createFace(data: any): any {
 
 	let line = new THREE.Line(geometry, wireMaterial);
 	return new D3Rendered(line, mesh);
+}
+
+
+class EdgeData {}
+
+export class Edge extends GEdge<EdgeData, Point> {}
+export class Triangle extends GTriangle<D3Rendered, EdgeData, Point> {}
+export class TerraMap extends GTerraMap<D3Rendered, EdgeData, Point> {
+	constructor(scale: number = 1) {
+		super(middle(scale));
+	}
 }
 
 ////#region Mouse events

@@ -1,16 +1,15 @@
-import Point from './point'
-import Edge, {DirectedEdge, TriangleInterface, TrianglePoints} from './edge'
+import Edge, {DirectedEdge, ITriangle, TrianglePoints} from './edge'
 import ITerraMap from '../terraMap.h'
 import {LazyGetter} from 'lazy-get-decorator'
 
-type Edges = [DirectedEdge, DirectedEdge, DirectedEdge];
+type Edges<E,P> = [DirectedEdge<E,P>, DirectedEdge<E,P>, DirectedEdge<E,P>];
 
-export default class Triangle implements TriangleInterface {
-	TM: ITerraMap
-	outerEdges: [DirectedEdge, DirectedEdge, DirectedEdge];
-	innerEdges: [Edge?, Edge?, Edge?];
-	data: any
-	constructor(TM: ITerraMap, edges: Edges, data?: any) {
+export default class Triangle<T,E,P> implements ITriangle<E,P> {
+	TM: ITerraMap<P>
+	outerEdges: [DirectedEdge<E,P>, DirectedEdge<E,P>, DirectedEdge<E,P>];
+	innerEdges: [Edge<E,P>?, Edge<E,P>?, Edge<E,P>?];
+	data: T
+	constructor(TM: ITerraMap<P>, edges: Edges<E,P>, data?: T) {
 		this.TM = TM;
 		this.data = data;
 		this.innerEdges = [];
@@ -28,8 +27,8 @@ export default class Triangle implements TriangleInterface {
 		});
 		this.TM.emit('remove', this);
 	}
-	addSub(edges: Edges) {
-		(new Triangle(this.TM, edges)).add();
+	addSub(edges: Edges<E,P>) {
+		(new Triangle<T,E,P>(this.TM, edges)).add();
 	}
 	divide() {
 		for(let e of this.outerEdges)
@@ -37,9 +36,9 @@ export default class Triangle implements TriangleInterface {
 				e.edge.divide();
 	}
 	@LazyGetter()
-	get points(): TrianglePoints {
+	get points(): TrianglePoints<P> {
 		const dg = this.outerEdges;
-		const points = <TrianglePoints>[...dg[0].orderedPoints, dg[1].orderedPoints[1]];
+		const points = <TrianglePoints<P>>[...dg[0].orderedPoints, dg[1].orderedPoints[1]];
 		console.assert(
 			dg[0].orderedPoints[1] == dg[1].orderedPoints[0] &&
 			dg[1].orderedPoints[1] == dg[2].orderedPoints[0] &&
@@ -48,12 +47,12 @@ export default class Triangle implements TriangleInterface {
 		);
 		return points;
 	}
-	cut(index: number, subEdges: [Edge, Edge]) {
+	cut(index: number, subEdges: [Edge<E,P>, Edge<E,P>]) {
 		let middle = subEdges[0].ends[1], midEdge;
 		console.assert(middle === subEdges[1].ends[1], "Edge division consistant: [AM, BM]");
 		switch(this.innerEdges.length) {
 		case 0:
-			midEdge = new Edge(this.TM, [middle, this.outerEdges[index].orderedPoints[0]]);
+			midEdge = new Edge<E,P>(this.TM, [middle, this.outerEdges[index].orderedPoints[0]]);
 			midEdge.referents = [null];
 			this.innerEdges[0] = midEdge;
 			this.remove(false);
@@ -111,11 +110,11 @@ export default class Triangle implements TriangleInterface {
 
 			index = (index+1)%3;
 			if(index) this.innerEdges[index] = this.innerEdges[0];
-			this.innerEdges[(index+1)%3] = new Edge(this.TM, [already.ends[1], middle]);
-			this.innerEdges[(index+2)%3] = new Edge(this.TM, [middle, already.ends[0]]);
+			this.innerEdges[(index+1)%3] = new Edge<E,P>(this.TM, [already.ends[1], middle]);
+			this.innerEdges[(index+2)%3] = new Edge<E,P>(this.TM, [middle, already.ends[0]]);
 			this.TM.emit('divided', this);
 			// inside sub-triangle
-			this.addSub(<Edges>this.innerEdges.map(edge => edge.directed[0]));
+			this.addSub(<Edges<E,P>>this.innerEdges.map(edge => edge.directed[0]));
 			for(let i = index+1; (i=i%3) !== index; ++i) {
 				let extSummit = this.points[(i+2)%3],
 					nEdge = this.outerEdges[(i+1)%3],
