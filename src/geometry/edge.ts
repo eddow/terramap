@@ -1,4 +1,5 @@
-import Point, {Coords} from './point'
+import Point from './point'
+import ITerraMap from '../terraMap.h'
 import {LazyGetter} from 'lazy-get-decorator'
 
 export type Ends = [Point, Point];
@@ -12,11 +13,15 @@ export interface TriangleInterface {
 }
 
 export default class Edge {
+	TM: ITerraMap
 	ends: Ends;
 	middle?: Point;
 	division?: [Edge, Edge];
 	referents?: [Edge, Edge?]
-	constructor(ends: Ends) {
+	data: any
+	constructor(TM: ITerraMap, ends: Ends, data?: any) {
+		this.TM = TM;
+		this.data = data;
 		this.ends = ends;
 	}
 	@LazyGetter()
@@ -28,11 +33,10 @@ export default class Edge {
 		console.assert(!this.referents, "No division of helper edge")
 		console.assert(!this.middle, "No duplicate edge division")
 		const ends = this.ends;
-		var coords = <Coords>[0,1,2].map(i=> (ends[0].coords[i]+ends[1].coords[i])/2);
-		this.middle = new Point(coords, (ends[0].height+ends[1].height)/2);
+		this.middle = this.TM.pointComputer([ends[0], ends[1]]);
 		this.division = [
-			new Edge([this.ends[0], this.middle]),
-			new Edge([this.ends[1], this.middle])
+			new Edge(this.TM, [this.ends[0], this.middle]),
+			new Edge(this.TM, [this.ends[1], this.middle])
 		];
 		for(let i in this.directed) {
 			let directed = this.directed[i];

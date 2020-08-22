@@ -37,7 +37,7 @@ module.exports = {
 	},
 	resolve: {
 		alias: {
-			'terramap': path.resolve(__dirname, '../src/index.ts')
+			'terramap': path.resolve(__dirname, '../src/')
 		},
 		extensions: [".ts", ".js", '.html']
 	},
