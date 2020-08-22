@@ -22,6 +22,7 @@
     "webpack-node-externals": "^1.7.2"
   },
   "dependencies": {
+    "lazy-get-decorator": "^2.2.0",
     "three": "^0.119.1",
     "typescript.events": "^7.9.0",
     "webgl": "0.0.7"

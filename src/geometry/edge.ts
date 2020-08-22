@@ -1,4 +1,5 @@
 import Point, {Coords} from './point'
+import {LazyGetter} from 'lazy-get-decorator'
 
 export type Ends = [Point, Point];
 
@@ -7,27 +8,31 @@ export interface TriangleInterface {
 	outerEdges: [DirectedEdge, DirectedEdge, DirectedEdge];
 	innerEdges: [Edge?, Edge?, Edge?];
 	points: TrianglePoints;
-	cut(index: number, point: Point);
+	cut(index: number, subEdges: [Edge, Edge]);
 }
 
 export default class Edge {
 	ends: Ends;
 	middle?: Point;
 	division?: [Edge, Edge];
-	directed: [DirectedEdge, DirectedEdge]
+	referents?: [Edge, Edge?]
 	constructor(ends: Ends) {
-		this.directed = [new DirectedEdge(this, 0), new DirectedEdge(this, 1)];
 		this.ends = ends;
 	}
+	@LazyGetter()
+	get directed(): [DirectedEdge, DirectedEdge] {
+		return [new DirectedEdge(this, 0), new DirectedEdge(this, 1)];
+	}
+
 	divide() {
-		//TODO: check if we have a parent -> no division
+		console.assert(!this.referents, "No division of helper edge")
 		console.assert(!this.middle, "No duplicate edge division")
 		const ends = this.ends;
-		var coords = [0,1,2].map(i=> (ends[0].coords[i]+ends[1].coords[i])/2) as Coords;
+		var coords = <Coords>[0,1,2].map(i=> (ends[0].coords[i]+ends[1].coords[i])/2);
 		this.middle = new Point(coords, (ends[0].height+ends[1].height)/2);
 		this.division = [
 			new Edge([this.ends[0], this.middle]),
-			new Edge([this.middle, this.ends[1]])
+			new Edge([this.ends[1], this.middle])
 		];
 		for(let i in this.directed) {
 			let directed = this.directed[i];
@@ -36,7 +41,7 @@ export default class Edge {
 			switch(triangle.innerEdges.length) {
 			case 0:
 				var opposite = triangle.points.findIndex(p => !~ends.indexOf(p));
-				triangle.cut(opposite, this.middle);
+				triangle.cut(opposite, this.division);
 				break;
 			case 1:
 				throw "todo";
@@ -56,11 +61,12 @@ export class DirectedEdge {
 		this.edge = edge;
 		this.inverted = !!inverted;
 	}
+	@LazyGetter()
 	get orderedPoints() : Ends {
-		var straight = false;
+		var inverse = false;
 		for(let browser : DirectedEdge = this; browser; browser = browser.parent)
-			straight = straight != browser.inverted;
-		return straight ? this.ends : [this.ends[1], this.ends[0]];
+			inverse = inverse != browser.inverted;
+		return inverse ? [this.ends[1], this.ends[0]] : this.ends;
 	}
 
 ////// Forwards

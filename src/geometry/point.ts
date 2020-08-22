@@ -5,6 +5,7 @@ export default class Point {
 	constructor(coords: [number, number, number], height: number = 1) {
 		let [x, y, z] = coords;
 		let actualHeight = Math.sqrt(x*x + y*y + z*z);
-		this.coords = coords.map(x => x * height/actualHeight) as Coords;
+		this.height = height;
+		this.coords = <Coords>coords.map(x => x * height/actualHeight);
 	}
 }
