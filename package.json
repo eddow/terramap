@@ -1,14 +1,14 @@
 {
   "name": "terramap",
   "version": "1.0.0",
-  "description": "",
+  "description": "Planet dynamic random generation",
   "main": "dist/index.js",
   "scripts": {
     "start": "webpack --watch --progress",
     "prepack": "webpack",
     "demo": "webpack-dev-server --config demo/webpack.config.js --watch --progress"
   },
-  "author": "",
+  "author": "fmdm",
   "license": "ISC",
   "devDependencies": {
     "html-webpack-plugin": "^4.3.0",
