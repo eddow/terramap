@@ -12,9 +12,9 @@ export default class TerraMap {
 		const s30 = Math.sin(30*Math.PI/180), c30 = Math.cos(30*Math.PI/180);
 		var smt = this.summits = [
 			new Point([0, 0, 1], scale),
-			new Point([0, c30, -s30], scale+10),
-			new Point([c30*c30, -c30*s30, -s30], scale+30),
-			new Point([-c30*c30, -c30*s30, -s30], scale+50)
+			new Point([0, c30, -s30], scale),
+			new Point([c30*c30, -c30*s30, -s30], scale),
+			new Point([-c30*c30, -c30*s30, -s30], scale)
 		];
 		var edg = this.edges = [
 			new Edge([smt[0], smt[1]]),

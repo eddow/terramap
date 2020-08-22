@@ -3,11 +3,13 @@ import Edge, {DirectedEdge, TriangleInterface, TrianglePoints} from './edge'
 import {Event} from 'typescript.events'
 import {LazyGetter} from 'lazy-get-decorator'
 
+type Edges = [DirectedEdge, DirectedEdge, DirectedEdge];
+
 export default class Triangle extends Event implements TriangleInterface {
 	outerEdges: [DirectedEdge, DirectedEdge, DirectedEdge];
 	innerEdges: [Edge?, Edge?, Edge?];
 	d3Object: any
-	constructor(edges: [DirectedEdge, DirectedEdge, DirectedEdge]) {
+	constructor(edges: Edges) {
 		super();
 		this.innerEdges = [];
 		this.outerEdges = edges;
@@ -20,9 +22,9 @@ export default class Triangle extends Event implements TriangleInterface {
 		const dg = this.outerEdges;
 		const points = <TrianglePoints>[...dg[0].orderedPoints, dg[1].orderedPoints[1]];
 		console.assert(
-			~points.indexOf(dg[1].ends[0]) &&
-			~points.indexOf(dg[2].ends[0]) &&
-			~points.indexOf(dg[2].ends[1]),
+			dg[0].orderedPoints[1] == dg[1].orderedPoints[0] &&
+			dg[1].orderedPoints[1] == dg[2].orderedPoints[0] &&
+			dg[2].orderedPoints[1] == dg[0].orderedPoints[0],
 			'Consistant edging of triangle'
 		);
 		return points;
@@ -58,7 +60,7 @@ export default class Triangle extends Event implements TriangleInterface {
 			midEdge = this.innerEdges[0];
 			this.emit('remove', midEdge.directed[0].borderOf);
 			this.emit('remove', midEdge.directed[1].borderOf);
-			var undividedNdx = this.outerEdges.findIndex(edge=> !edge.middle),
+			let undividedNdx = this.outerEdges.findIndex(edge=> !edge.middle),
 				undivided = this.outerEdges[undividedNdx],
 				nEdge = this.outerEdges[(undividedNdx+1)%3],	//next edge (from undivided)
 				pEdge = this.outerEdges[(undividedNdx+2)%3],	//previous edge (from undivided)
@@ -76,21 +78,39 @@ export default class Triangle extends Event implements TriangleInterface {
 				pEdges = {nxt: nEdge.division[peNdx.nxt], prv: pEdge.division[peNdx.prv]},
 				stEdges = {nxt: nEdge.division[1-peNdx.nxt], prv: pEdge.division[1-peNdx.prv]};
 			this.innerEdges = [barEdge, crossEdge];
-			crossEdge.referents = barEdge.referents = [
-				(barEdge.directed[0].parent = barEdge.directed[1].parent = undivided).edge
-			];
+			crossEdge.referents = barEdge.referents = [undivided.edge];
 			// parralelipiped half - along the outer-edge
-			this.emit('add', new Triangle([undivided, pEdges.nxt.directed[0], crossEdge.directed[1]]));
+			this.emit('add', new Triangle([undivided, pEdges.nxt.directed[0], crossEdge.directed[0]]));
 			// parralelipiped half - along the inner-edge
 			this.emit('add', new Triangle([barEdge.directed[0], pEdges.prv.directed[1], crossEdge.directed[1]]));
 			// sub-triangle remaining on over-division
 			this.emit('add', new Triangle([stEdges.nxt.directed[1], stEdges.prv.directed[0], barEdge.directed[1]]));
 			break;
 		case 2:
-			midEdge = this.innerEdges[0];
+			let already = this.innerEdges[0];
+			delete already.referents;
+			midEdge = this.innerEdges[1];
 			this.emit('remove', midEdge.directed[0].borderOf);
 			this.emit('remove', midEdge.directed[1].borderOf);
-			throw "todo";
+
+			index = (index+1)%3;
+			if(index) this.innerEdges[index] = this.innerEdges[0];
+			this.innerEdges[(index+1)%3] = new Edge([already.ends[1], middle]);
+			this.innerEdges[(index+2)%3] = new Edge([middle, already.ends[0]]);
+
+			// inside sub-triangle
+			this.emit('add', new Triangle(<Edges>this.innerEdges.map(edge => edge.directed[0])));
+			for(let i = index+1; (i=i%3) !== index; ++i) {
+				let extSummit = this.points[(i+2)%3],
+					nEdge = this.outerEdges[(i+1)%3],
+					pEdge = this.outerEdges[(i+2)%3];
+				nEdge = nEdge.division[nEdge.division[0].ends[0] === extSummit ? 0 : 1].directed[1];
+				pEdge = pEdge.division[pEdge.division[0].ends[0] === extSummit ? 0 : 1].directed[0];
+				this.emit('add', new Triangle([this.innerEdges[i].directed[1], nEdge, pEdge]));
+			}
+			break;
+		default:
+			console.assert(false, "Cut only uncut triangles")
 			break;
 		}
 	}
