@@ -13,7 +13,7 @@ export interface ITriangle<E,P> {
 	points: TrianglePoints<P>;
 	cut(index: number, subEdges: [Edge<E,P>, Edge<E,P>]);
 	uncut(index: number, edge: Edge<E,P>);
-	remove(markEdges: boolean);
+	remove(markEdges?: boolean);
 	addSub(edges: Edges<E,P>);
 }
 
@@ -59,9 +59,15 @@ export default class Edge<E,P> {
 	/**
 	 * Merge a divided edge and keep the bordering triangles up to date
 	 */
-	merge() {
+	merge(recursive: boolean = false) {
 		console.assert(!this.referents, "No merge of helper edge")
 		console.assert(this.middle, "Merge only divided edges")
+		if(recursive) {
+			for(let e of this.division)
+				if(e.middle)
+					e.merge(recursive);
+		} else
+			console.assert(this.division.every(e=> !e.middle), "Edge to merge has no subDivision");
 		const ends = this.ends;
 		delete this.middle;
 		delete this.division;

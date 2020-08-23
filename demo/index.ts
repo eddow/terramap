@@ -1,4 +1,4 @@
-import {init, animate, createFace, TerraMap, Triangle, Edge, Point} from './threeIrf'
+import {init, animate, createFace, TerraMap, Triangle, Edge} from './threeIrf'
 
 var terra = new TerraMap(400);
 terra.on('add', addFace);
@@ -11,12 +11,12 @@ for(let face of terra.faces) {
 }
 
 var edges: Edge[] = terra.edges;
-/*for(let edge of edges) edge.divide();
-for(let edge of edges) if(!edge.middle) edge.divide();*/
-edges[0].divide();
-edges[5].divide();
-edges[3].divide();
+for(let edge of edges) edge.divide();
+//for(let edge of edges) if(!edge.middle) edge.divide();*/
+terra.faces[1].merge();
+/*edges[0].merge();
 edges[3].merge();
+edges[1].merge();*/
 animate();
 
 function dividedFace(face: Triangle) {
