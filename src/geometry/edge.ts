@@ -13,8 +13,8 @@ export interface ITriangle<E,P> {
 	points: TrianglePoints<P>;
 	cut(index: number, subEdges: [Edge<E,P>, Edge<E,P>]);
 	uncut(index: number, edge: Edge<E,P>);
-  remove(markEdges: boolean);
-  addSub(edges: Edges<E,P>);
+	remove(markEdges: boolean);
+	addSub(edges: Edges<E,P>);
 }
 
 export default class Edge<E,P> {
@@ -34,9 +34,9 @@ export default class Edge<E,P> {
 		return [new DirectedEdge<E,P>(this, 0), new DirectedEdge<E,P>(this, 1)];
 	}
 
-  /**
-   * Divide an undivided edge in 2 and keep the bordering triangles up to date
-   */
+	/**
+	 * Divide an undivided edge in 2 and keep the bordering triangles up to date
+	 */
 	divide() {
 		console.assert(!this.referents, "No division of helper edge")
 		console.assert(!this.middle, "No duplicate edge division")
@@ -56,9 +56,9 @@ export default class Edge<E,P> {
 		}
 	}
 
-  /**
-   * Merge a divided edge and keep the bordering triangles up to date
-   */
+	/**
+	 * Merge a divided edge and keep the bordering triangles up to date
+	 */
 	merge() {
 		console.assert(!this.referents, "No merge of helper edge")
 		console.assert(this.middle, "Merge only divided edges")

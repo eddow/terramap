@@ -1,5 +1,5 @@
 {
-  	"compilerOptions": {
+	"compilerOptions": {
 		"outDir": "dist",
 		"sourceMap": true,
 		"inlineSources": true,
@@ -16,7 +16,7 @@
 		"allowSyntheticDefaultImports": true,
 		"typeRoots": ["../node_modules/@types"],
 		"baseUrl": "./"
-  	},
+	},
 	"exclude": [
 		"**/*.spec.ts"
 	]
