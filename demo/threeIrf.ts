@@ -29,7 +29,7 @@ export function init() {
 
 	//
 
-	camera = new THREE.PerspectiveCamera( 27, window.innerWidth / window.innerHeight, 1, 5000 );
+	camera = new THREE.PerspectiveCamera( 27, (sizeX = window.innerWidth) / (sizeY = window.innerHeight), 1, 5000 );
 	camera.position.z = 2750;
 
 	scene = new THREE.Scene();
@@ -59,7 +59,6 @@ export function init() {
 	//
 
 	window.addEventListener( 'resize', onWindowResize, false );
-
 }
 
 function onWindowResize() {
@@ -67,15 +66,42 @@ function onWindowResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 
-	renderer.setSize(window.innerWidth-24, window.innerHeight-24);
+	renderer.setSize(sizeX = window.innerWidth-24, sizeY = window.innerHeight-24);
 
 }
 
 //
 
+
 export function animate() {
 
 	requestAnimationFrame( animate );
+
+
+	
+	raycaster.setFromCamera( mouse, camera );
+	var intersect = raycaster.intersectObjects(scene.children)[0];
+	if(intersect) {/*
+		var targetDistance = intersect.distance,
+			verts = intersect.object.geometry.vertices,
+			closest = null, minDist;
+		if(verts) {
+			for(let i=0; i<3; ++i) {
+				let line = new THREE.Line3(verts[(i+1)%3], verts[(i+2)%3]),
+					target = new THREE.Vector3(),
+					lineClosest = line.closestPointToPoint(intersect.point, false, target),
+					dist = lineClosest.distanceTo(intersect.point);
+				if(closest === null || dist < minDist) {
+					minDist = dist;
+					closest = line;
+				}
+			}
+		}*/
+	} else {
+		//un-highlight
+		
+		//displayed.geometry.verticesNeedUpdate = true;
+	}
 
 	render();
 
@@ -170,7 +196,8 @@ var mbDown: {x: number, y: number},
 	raycaster = new THREE.Raycaster(),
 	mouse = new THREE.Vector2(), intersected,
 	radius = 2750, theta = 0, highLine = null,
-	sizeX, sizeY;;
+	sizeX, sizeY,
+	highlighted;
 const wheelDistance = 100, mvtDistance = .01;
 
 window.addEventListener('mousedown', event=> {

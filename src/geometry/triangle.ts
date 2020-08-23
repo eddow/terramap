@@ -8,7 +8,11 @@ export default class Triangle<T,E,P> implements ITriangle<E,P> {
 	outerEdges: [DirectedEdge<E,P>, DirectedEdge<E,P>, DirectedEdge<E,P>];
 	innerEdges: [Edge<E,P>?, Edge<E,P>?, Edge<E,P>?];
 	data: T
+	// TODO: uid for debug purpose only
+	uid: number;
+	static ctr: number = 0;
 	constructor(TM: ITerraMap<P>, edges: Edges<E,P>, data?: T) {
+		this.uid = ++Edge.ctr;
 		this.TM = TM;
 		this.data = data;
 		this.innerEdges = [];
@@ -31,12 +35,12 @@ export default class Triangle<T,E,P> implements ITriangle<E,P> {
 	}
 	divide() {
 		for(let e of this.outerEdges)
-			if(!e.middle)
+			if(!e.division)
 				e.edge.divide();
 	}
 	merge(recursive: boolean = false) {
 		for(let e of this.outerEdges)
-			if(e.middle)
+			if(e.division)
 				e.edge.merge(recursive);
 	}
 	@LazyGetter()
@@ -64,7 +68,7 @@ export default class Triangle<T,E,P> implements ITriangle<E,P> {
 			divide1<E,P>(this, index, subEdges);
 			break;
 		case 1:
-			divide2<E,P>(this);
+			divide2<E,P>(this, subEdges[0].parent);
 			break;
 		case 2:
 			divide3<E,P>(this, index, subEdges);
@@ -74,14 +78,17 @@ export default class Triangle<T,E,P> implements ITriangle<E,P> {
 			break;
 		}
 	}
+	emitRemove(de: DirectedEdge<E,P>) {
+		this.TM.emit('remove', de.borderOf);
+	}
 	uncut(index: number, edge: Edge<E,P>) {
 		console.assert(this.outerEdges.every(e=> e.borderOf === this),
 			"Outer edges' `borderOf` are kept on the main triangle");
 		switch(this.innerEdges.length) {
 		case 1:
 			let midEdge = this.innerEdges.pop();
-			this.TM.emit('remove', midEdge.directed[0].borderOf);
-			this.TM.emit('remove', midEdge.directed[1].borderOf);
+			this.emitRemove(midEdge.directed[0]);
+			this.emitRemove(midEdge.directed[1]);
 			// 1-division merged => just re-add the plain triangle
 			this.TM.emit('add', this);	//No need to set `borderOf` as they should have been kept
 			break;
@@ -89,23 +96,23 @@ export default class Triangle<T,E,P> implements ITriangle<E,P> {
 			let [barEdge, crossEdge] = this.innerEdges;
 			this.innerEdges = [];
 			
-			this.TM.emit('remove', crossEdge.directed[0].borderOf);
-			this.TM.emit('remove', crossEdge.directed[1].borderOf);
-			this.TM.emit('remove', barEdge.directed[1].borderOf);
+			this.emitRemove(crossEdge.directed[0]);
+			this.emitRemove(crossEdge.directed[1]);
+			this.emitRemove(barEdge.directed[1]);
 
-			let divided = this.outerEdges.find(e=> e.middle);
+			let divided = this.outerEdges.find(e=> e.division);
 			index = this.points.findIndex(p => !~divided.ends.indexOf(p));
 			divide1(this, index, divided.division);
 			break;
 		case 3:
-			this.TM.emit('remove', this.innerEdges[index].directed[0].borderOf);
-			this.TM.emit('remove', this.innerEdges[index].directed[1].borderOf);
-			this.TM.emit('remove', this.innerEdges[(index+2)%3].directed[1].borderOf);
+			this.emitRemove(this.innerEdges[index].directed[0]);
+			this.emitRemove(this.innerEdges[index].directed[1]);
+			this.emitRemove(this.innerEdges[(index+2)%3].directed[1]);
 			
 			index = (index+1)%3;
 			if(index) this.innerEdges[0] = this.innerEdges[index];
 			this.innerEdges.splice(1, 2);
-			divide2<E,P>(this, this.innerEdges[index]);
+			divide2<E,P>(this, null, this.innerEdges[index]);
 			break;
 		default:
 			console.assert(false, "Uncut only cut triangles")

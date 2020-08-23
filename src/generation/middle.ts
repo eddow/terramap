@@ -20,7 +20,7 @@ export class Point {
 }
 
 export default (scale: number = 1): Generation<Point>=> {
-	const s30 = Math.sin(30*Math.PI/180), c30 = Math.cos(30*Math.PI/180);
+	const s30 = Math.sin(Math.PI/6), c30 = Math.cos(Math.PI/6);
 	return {
 		initials: [
 			new Point([0, 0, 1], scale, [.5, .5, .5]),

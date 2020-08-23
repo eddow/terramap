@@ -20,32 +20,49 @@ export interface ITriangle<E,P> {
 export default class Edge<E,P> {
 	TM: ITerraMap<P>
 	ends: Ends<P>;
-	middle?: P;
 	division?: [Edge<E,P>, Edge<E,P>];
-	referents?: [Edge<E,P>, Edge<E,P>?]
-	data: E
+	/**
+	 * Referents are undivided edges that should be divided before this edge could be divided.
+	 */
+	readonly referents: Set<Edge<E,P>>;
+	data: E;
+	parent?: Edge<E,P>;
+	// TODO: uid for debug purpose only
+	uid: number;
+	static ctr: number = 0;
 	constructor(TM: ITerraMap<P>, ends: Ends<P>, data?: E) {
+		this.uid = ++Edge.ctr;
 		this.TM = TM;
 		this.data = data;
 		this.ends = ends;
+		this.referents = new Set<Edge<E,P>>();
 	}
 	@LazyGetter()
 	get directed(): [DirectedEdge<E,P>, DirectedEdge<E,P>] {
 		return [new DirectedEdge<E,P>(this, 0), new DirectedEdge<E,P>(this, 1)];
 	}
 
+	get middle(): P {
+		return !this.division ? null : this.division[0].ends[1];
+	}
+
 	/**
 	 * Divide an undivided edge in 2 and keep the bordering triangles up to date
 	 */
-	divide() {
-		console.assert(!this.referents, "No division of helper edge")
-		console.assert(!this.middle, "No duplicate edge division")
+	divide(recursive: boolean = false) {
+		console.assert(!this.division, "No duplicate edge division");
+		if(recursive) {
+			this.referents.forEach(r=> r.divide(recursive));
+			if(this.division) return;
+		} else
+			console.assert(!this.referents.size, "No division of helper edge")
 		const ends = this.ends;
-		this.middle = this.TM.pointComputer([ends[0], ends[1]]);
+		const middle = this.TM.pointComputer([ends[0], ends[1]]);
 		this.division = [
-			new Edge<E,P>(this.TM, [this.ends[0], this.middle]),
-			new Edge<E,P>(this.TM, [this.ends[1], this.middle])
+			new Edge<E,P>(this.TM, [this.ends[0], middle]),
+			new Edge<E,P>(this.TM, [this.ends[1], middle])
 		];
+		for(let e of this.division) e.parent = this;
 		for(let i in this.directed) {
 			let directed = this.directed[i];
 			let triangle = directed.borderOf;
@@ -60,16 +77,15 @@ export default class Edge<E,P> {
 	 * Merge a divided edge and keep the bordering triangles up to date
 	 */
 	merge(recursive: boolean = false) {
-		console.assert(!this.referents, "No merge of helper edge")
-		console.assert(this.middle, "Merge only divided edges")
+		console.assert(this.division, "Merge only divided edges")
 		if(recursive) {
 			for(let e of this.division)
-				if(e.middle)
+				if(e.division)
 					e.merge(recursive);
+			if(!this.division) return;
 		} else
-			console.assert(this.division.every(e=> !e.middle), "Edge to merge has no subDivision");
+			console.assert(this.division.every(e=> !e.division), "Edge to merge has no subDivision");
 		const ends = this.ends;
-		delete this.middle;
 		delete this.division;
 		for(let i in this.directed) {
 			let directed = this.directed[i];
