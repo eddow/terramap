@@ -151,7 +151,6 @@ export function createFace(data: [Point, Point, Point]): D3Rendered {
 	return new D3Rendered(line, mesh);
 }
 
-
 class EdgeData {}
 
 export class Edge extends GEdge<EdgeData, Point> {}

@@ -11,8 +11,12 @@ for(let face of terra.faces) {
 }
 
 var edges: Edge[] = terra.edges;
-for(let edge of edges) edge.divide();
-for(let edge of edges) if(!edge.middle) edge.divide();
+/*for(let edge of edges) edge.divide();
+for(let edge of edges) if(!edge.middle) edge.divide();*/
+edges[0].divide();
+edges[5].divide();
+edges[3].divide();
+edges[3].merge();
 animate();
 
 function dividedFace(face: Triangle) {

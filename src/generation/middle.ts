@@ -18,13 +18,6 @@ export class Point {
 		return Math.sqrt(x*x + y*y + z*z);
 	}
 }
-/*
-class EdgeData {}
-class TriangleData {}
-
-export class Edge extends GEdge<EdgeData, Point> {}
-export class Triangle extends GTriangle<TriangleData, EdgeData, Point> {}
-export class TerraMap extends GTerraMap<TriangleData, EdgeData, Point> {}*/
 
 export default (scale: number = 1): Generation<Point>=> {
 	const s30 = Math.sin(30*Math.PI/180), c30 = Math.cos(30*Math.PI/180);
