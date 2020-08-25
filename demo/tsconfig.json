@@ -15,7 +15,8 @@
 		],
 		"allowSyntheticDefaultImports": true,
 		"typeRoots": ["../node_modules/@types"],
-		"baseUrl": "./"
+		"baseUrl": "./",
+		"downlevelIteration": true
 	},
 	"exclude": [
 		"**/*.spec.ts"

@@ -1,7 +1,7 @@
-import Edge, {DirectedEdge, ITriangle, TrianglePoints, Edges} from './edge'
-import ITerraMap from '../terraMap.h'
+import Edge, {DirectedEdge, ITriangle, TrianglePoints, Edges} from './Edge'
+import ITerraMap from '../ITerraMap'
 import {LazyGetter} from 'lazy-get-decorator'
-import {divide1, divide2, divide3} from './divisions'
+import {divide1, divide2, divide3, deleteReferent} from './divisions'
 
 export default class Triangle<T,E,P> implements ITriangle<E,P> {
 	TM: ITerraMap<P>
@@ -12,7 +12,7 @@ export default class Triangle<T,E,P> implements ITriangle<E,P> {
 	uid: number;
 	static ctr: number = 0;
 	constructor(TM: ITerraMap<P>, edges: Edges<E,P>, data?: T) {
-		this.uid = ++Edge.ctr;
+		this.uid = Edge.ctr++;
 		this.TM = TM;
 		this.data = data;
 		this.innerEdges = [];
@@ -26,19 +26,24 @@ export default class Triangle<T,E,P> implements ITriangle<E,P> {
 	}
 	remove(markEdges: boolean = true) {
 		if(markEdges) this.outerEdges.forEach(dg=> {
-			if(dg.borderOf === this) delete dg.borderOf;
+			if(dg.borderOf === this) {
+				delete dg.borderOf;
+				for(let e of dg.referents)
+					e.referedBy.delete(dg.edge);
+				dg.referents.clear();
+			}
 		});
 		this.TM.emit('remove', this);
 	}
 	addSub(edges: Edges<E,P>) {
 		(new Triangle<T,E,P>(this.TM, edges)).add();
 	}
-	divide() {
+	divide(recursive?: boolean) {
 		for(let e of this.outerEdges)
 			if(!e.division)
-				e.edge.divide();
+				e.edge.divide(recursive);
 	}
-	merge(recursive: boolean = false) {
+	merge(recursive?: boolean) {
 		for(let e of this.outerEdges)
 			if(e.division)
 				e.edge.merge(recursive);
@@ -62,6 +67,8 @@ export default class Triangle<T,E,P> implements ITriangle<E,P> {
 			let midEdge = this.innerEdges.pop();
 			midEdge.directed[0].borderOf.remove();
 			midEdge.directed[1].borderOf.remove();
+			for(let e of midEdge.referents)
+				e.referedBy.delete(midEdge);
 		}
 		switch(divCase) {
 		case 0:

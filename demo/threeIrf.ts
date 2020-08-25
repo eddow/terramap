@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import middle, {Point} from 'terramap/generation/middle'
-export {Point} from 'terramap/generation/middle'
+export {Point, Coords} from 'terramap/generation/middle'
 import GTerraMap, {GEdge, GTriangle} from 'terramap'
 var container;
 
@@ -10,11 +10,11 @@ var renderer;
 var segments = 4;
 var t = 0;
 
-var wireMaterial = new THREE.LineBasicMaterial( { vertexColors: true, morphTargets: true } );
-var meshMaterial = new THREE.MeshPhongMaterial( {
+var wireMaterial = new THREE.LineBasicMaterial({vertexColors: true, morphTargets: true});
+var meshMaterial = new THREE.MeshPhongMaterial({
 	color: 0xaaaaaa, specular: 0xffffff, shininess: 5,
 	side: THREE.BackSide, vertexColors: true
-} );
+});
 var white = Array(12).fill(1);
 var pA = new THREE.Vector3();
 var pB = new THREE.Vector3();
@@ -212,7 +212,15 @@ window.addEventListener('wheel', event => {
 	radius += event.deltaY>0?wheelDistance:-wheelDistance;
 	reposition();
 });
-window.addEventListener('mouseup', event=> 1=== event.button ? mbDown = null : null, false );
+var clickHandler = null;
+export function handleClick(cb: ()=> void) {
+	clickHandler = cb;
+}
+window.addEventListener('mouseup', event=> {
+	if(0=== event.button && clickHandler) clickHandler();
+	if(1=== event.button) mbDown = null;
+	return false;
+});
 window.addEventListener('mousemove', event=> {
 	if(mbDown) {
 		var nwDown = {x: event.clientX, y: event.clientY},

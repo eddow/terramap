@@ -1,4 +1,4 @@
-import ITerraMap from '../terraMap.h'
+import ITerraMap from '../ITerraMap'
 import {LazyGetter} from 'lazy-get-decorator'
 
 export type Ends<P> = [P, P];
@@ -25,17 +25,26 @@ export default class Edge<E,P> {
 	 * Referents are undivided edges that should be divided before this edge could be divided.
 	 */
 	readonly referents: Set<Edge<E,P>>;
+	readonly referedBy: Set<Edge<E,P>>;
 	data: E;
 	parent?: Edge<E,P>;
 	// TODO: uid for debug purpose only
 	uid: number;
 	static ctr: number = 0;
 	constructor(TM: ITerraMap<P>, ends: Ends<P>, data?: E) {
-		this.uid = ++Edge.ctr;
+		this.uid = Edge.ctr++;
 		this.TM = TM;
 		this.data = data;
 		this.ends = ends;
 		this.referents = new Set<Edge<E,P>>();
+		this.referedBy = new Set<Edge<E,P>>();
+	}
+	get undividedReferents(): Edge<E,P>[] {
+		var rv = [];
+		for(let e of this.referents)
+			if(!e.division)
+				rv.push(e);
+		return rv;
 	}
 	@LazyGetter()
 	get directed(): [DirectedEdge<E,P>, DirectedEdge<E,P>] {
@@ -49,13 +58,14 @@ export default class Edge<E,P> {
 	/**
 	 * Divide an undivided edge in 2 and keep the bordering triangles up to date
 	 */
-	divide(recursive: boolean = false) {
+	divide(recursive?: boolean) {
 		console.assert(!this.division, "No duplicate edge division");
 		if(recursive) {
-			this.referents.forEach(r=> r.divide(recursive));
+			for(let r of this.undividedReferents)
+				r.divide(recursive);
 			if(this.division) return;
 		} else
-			console.assert(!this.referents.size, "No division of helper edge")
+			console.assert(!this.undividedReferents.length, "No division of helper edge")
 		const ends = this.ends;
 		const middle = this.TM.pointComputer([ends[0], ends[1]]);
 		this.division = [
@@ -76,17 +86,24 @@ export default class Edge<E,P> {
 	/**
 	 * Merge a divided edge and keep the bordering triangles up to date
 	 */
-	merge(recursive: boolean = false) {
+	merge(recursive?: boolean) {
 		console.assert(this.division, "Merge only divided edges")
+		var subMerge = this.division.concat(
+			[...this.referedBy],
+			this.directed[0].borderOf.innerEdges,
+			this.directed[1].borderOf.innerEdges
+		);
 		if(recursive) {
-			for(let e of this.division)
+			for(let e of subMerge)
 				if(e.division)
 					e.merge(recursive);
 			if(!this.division) return;
 		} else
-			console.assert(this.division.every(e=> !e.division), "Edge to merge has no subDivision");
+			console.assert(this.division.every(e=> !e.division && !e.referedBy.size), "Edge to merge has no subDivision");
 		const ends = this.ends;
+		this.TM.emit('deleteEdges', this.division)
 		delete this.division;
+		console.log(this.uid);
 		for(let i in this.directed) {
 			let directed = this.directed[i];
 			let triangle = directed.borderOf;
@@ -113,6 +130,8 @@ export class DirectedEdge<E,P> {
 ////// Forwards
 	get ends(): Ends<P> { return this.edge.ends; }
 	get middle(): P|undefined { return this.edge.middle; }
+	get referents(): Set<Edge<E,P>> { return this.edge.referents; }
+	get referedBy(): Set<Edge<E,P>> { return this.edge.referedBy; }
 	get division(): [Edge<E,P>, Edge<E,P>]|undefined { return this.edge.division; }
 	borderOf: ITriangle<E,P>;
 }

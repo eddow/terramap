@@ -1,13 +1,18 @@
-import Edge, {ITriangle, Edges} from './edge'
+import Edge, {ITriangle, Edges} from './Edge'
 
-function addReferent<E,P>(referent: Edge<E,P>, targets: Edge<E,P>[]): Edge<E,P>[] {
-	for(let e of targets)
+export function addReferent<E,P>(referent: Edge<E,P>, targets: Edge<E,P>[]): Edge<E,P>[] {
+	for(let e of targets) {
 		e.referents.add(referent)
+		referent.referedBy.add(e);
+	}
+		
 	return targets;
 }
-function deleteReferent<E,P>(referent: Edge<E,P>, targets: Edge<E,P>[]): Edge<E,P>[] {
-	for(let e of targets)
-		e.referents.delete(referent)
+export function deleteReferent<E,P>(referent: Edge<E,P>, targets: Edge<E,P>[]): Edge<E,P>[] {
+	for(let e of targets) {
+		/*e.referents.delete(referent);
+		referent.referedBy.delete(e);*/
+	}
 	return targets;
 }
 
@@ -81,7 +86,7 @@ triangles: BCE, EDC, ADE
 	triangle.innerEdges = [barEdge, crossEdge];
 	addReferent(undivided.edge, [crossEdge, barEdge]);
 	if(divided) deleteReferent(divided, [stEdges.nxt, stEdges.prv, pEdges.nxt, pEdges.prv]);
-	else addReferent(undivided.edge, [stEdges.nxt, stEdges.prv, pEdges.nxt, pEdges.prv]);
+	if(alreadyBarEdge) addReferent(undivided.edge, [stEdges.nxt, stEdges.prv, pEdges.nxt, pEdges.prv]);
 
 	// parallelepiped half - along the outer-edge
 	triangle.addSub([undivided, pEdges.nxt.directed[0], crossEdge.directed[0]]);
@@ -117,6 +122,7 @@ triangles: BEF, CFD, ADE, FED
 		...triangle.outerEdges[(index+2)%3].division,
 		triangle.innerEdges[index]
 	]);
+	addReferent(divided, [triangle.innerEdges[index]]);
 	triangle.TM.emit('divided', triangle);
 	// inside sub-triangle
 	triangle.addSub(<Edges<E,P>>triangle.innerEdges.map(edge => edge.directed[0]));
