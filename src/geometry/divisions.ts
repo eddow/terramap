@@ -10,8 +10,8 @@ export function addReferent<E,P>(referent: Edge<E,P>, targets: Edge<E,P>[]): Edg
 }
 export function deleteReferent<E,P>(referent: Edge<E,P>, targets: Edge<E,P>[]): Edge<E,P>[] {
 	for(let e of targets) {
-		/*e.referents.delete(referent);
-		referent.referedBy.delete(e);*/
+		e.referents.delete(referent);
+		referent.referedBy.delete(e);
 	}
 	return targets;
 }

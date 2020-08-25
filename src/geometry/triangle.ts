@@ -119,7 +119,7 @@ export default class Triangle<T,E,P> implements ITriangle<E,P> {
 			index = (index+1)%3;
 			if(index) this.innerEdges[0] = this.innerEdges[index];
 			this.innerEdges.splice(1, 2);
-			divide2<E,P>(this, null, this.innerEdges[index]);
+			divide2<E,P>(this, null, this.innerEdges[0]);
 			break;
 		default:
 			console.assert(false, "Uncut only cut triangles")

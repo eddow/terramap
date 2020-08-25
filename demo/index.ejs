@@ -3,8 +3,23 @@
 	<head>
 		<meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
 		<title><%= htmlWebpackPlugin.options.title %></title>
+		<style>
+			div {
+				position: fixed;
+				top: 0;
+				left: 0;
+			}
+			#textHelper {
+				cursor: pointer;
+				opacity: 0.9;
+				z-index: 10000;
+				color: white;
+				background-color: black;
+			}
+		</style>
 	</head>
 	<body>
+		<div id="textHelper"></div>
 		<div id="container"></div>
 	</body>
 </html>	

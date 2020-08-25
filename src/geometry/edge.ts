@@ -15,6 +15,7 @@ export interface ITriangle<E,P> {
 	uncut(index: number, edge: Edge<E,P>);
 	remove(markEdges?: boolean);
 	addSub(edges: Edges<E,P>);
+	merge(recursive?: boolean);
 }
 
 export default class Edge<E,P> {
@@ -87,30 +88,32 @@ export default class Edge<E,P> {
 	 * Merge a divided edge and keep the bordering triangles up to date
 	 */
 	merge(recursive?: boolean) {
-		console.assert(this.division, "Merge only divided edges")
-		var subMerge = this.division.concat(
-			[...this.referedBy],
+		console.assert(this.division || recursive, "Merge only divided edges")
+		var subMerge = (this.division??<Edge<E, P>[]>[]).concat(
 			this.directed[0].borderOf.innerEdges,
 			this.directed[1].borderOf.innerEdges
 		);
 		if(recursive) {
-			for(let e of subMerge)
-				if(e.division)
-					e.merge(recursive);
+			for(let e of subMerge) {
+				e.directed[0].borderOf.merge(recursive);
+				e.directed[1].borderOf.merge(recursive);
+			}
 			if(!this.division) return;
 		} else
 			console.assert(this.division.every(e=> !e.division && !e.referedBy.size), "Edge to merge has no subDivision");
-		const ends = this.ends;
-		this.TM.emit('deleteEdges', this.division)
-		delete this.division;
-		console.log(this.uid);
-		for(let i in this.directed) {
-			let directed = this.directed[i];
-			let triangle = directed.borderOf;
-			console.assert(triangle, "All directed edges are bording a triangle");
-			console.assert(triangle.innerEdges.length > 0, "Merged triangles are divided");
-			var opposite = triangle.points.findIndex(p => !~ends.indexOf(p));
-			triangle.uncut(opposite, this);
+		if(this.division) {
+			const ends = this.ends;
+			this.TM.emit('deleteEdges', this.division)
+			delete this.division;
+			console.log(this.uid);
+			for(let i in this.directed) {
+				let directed = this.directed[i];
+				let triangle = directed.borderOf;
+				console.assert(triangle, "All directed edges are bording a triangle");
+				console.assert(triangle.innerEdges.length > 0, "Merged triangles are divided");
+				var opposite = triangle.points.findIndex(p => !~ends.indexOf(p));
+				triangle.uncut(opposite, this);
+			}
 		}
 	}
 }

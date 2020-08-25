@@ -1,6 +1,8 @@
+import {LineBasicMaterial, MeshBasicMaterial, Geometry, BackSide, PerspectiveCamera, Scene, Color,
+	Raycaster, Face3, Vector2, Vector3, Line, Mesh, sRGBEncoding, Fog, AmbientLight, WebGLRenderer} from 'three';
 import * as THREE from 'three';
 import middle, {Point} from 'terramap/generation/middle'
-export {Point, Coords} from 'terramap/generation/middle'
+export {Coords, Point} from 'terramap/generation/middle'
 import GTerraMap, {GEdge, GTriangle} from 'terramap'
 var container;
 
@@ -10,18 +12,12 @@ var renderer;
 var segments = 4;
 var t = 0;
 
-var wireMaterial = new THREE.LineBasicMaterial({vertexColors: true, morphTargets: true});
-var meshMaterial = new THREE.MeshPhongMaterial({
-	color: 0xaaaaaa, specular: 0xffffff, shininess: 5,
-	side: THREE.BackSide, vertexColors: true
+var wireMaterial = new LineBasicMaterial({vertexColors: true, morphTargets: true});
+var meshMaterial = new MeshBasicMaterial({
+	//color: 0xaaaaaa, specular: 0xffffff, shininess: 5,
+	side: BackSide, vertexColors: true
 });
 var white = Array(12).fill(1);
-var pA = new THREE.Vector3();
-var pB = new THREE.Vector3();
-var pC = new THREE.Vector3();
-
-var cb = new THREE.Vector3();
-var ab = new THREE.Vector3();
 
 export function init() {
 
@@ -29,30 +25,30 @@ export function init() {
 
 	//
 
-	camera = new THREE.PerspectiveCamera( 27, (sizeX = window.innerWidth) / (sizeY = window.innerHeight), 1, 5000 );
+	camera = new PerspectiveCamera( 27, (sizeX = window.innerWidth) / (sizeY = window.innerHeight), 1, 5000 );
 	camera.position.z = 2750;
 
-	scene = new THREE.Scene();
-	scene.background = new THREE.Color( 0x050505 );
-	scene.fog = new THREE.Fog( 0x050505, 2000, 5000 );
+	scene = new Scene();
+	scene.background = new Color( 0x050505 );
+	scene.fog = new Fog( 0x050505, 2000, 5000 );
 
 	//
 
-	scene.add( new THREE.AmbientLight( 0xffffff ) );
+	scene.add( new AmbientLight( 0xffffff ) );
 /*
-	var light1 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+	var light1 = new DirectionalLight( 0xffffff, 0.5 );
 	light1.position.set( 1, 1, 1 );
 	scene.add( light1 );
 
-	var light2 = new THREE.DirectionalLight( 0xffffff, 1.5 );
+	var light2 = new DirectionalLight( 0xffffff, 1.5 );
 	light2.position.set( 0, - 1, 0 );
 	scene.add( light2 );*/
 	//
 
-	renderer = new THREE.WebGLRenderer();
+	renderer = new WebGLRenderer();
 	renderer.setPixelRatio(window.devicePixelRatio);
-	renderer.setSize(window.innerWidth-24, window.innerHeight-24);
-	renderer.outputEncoding = THREE.sRGBEncoding;
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.outputEncoding = sRGBEncoding;
 
 	container.appendChild( renderer.domElement );
 
@@ -66,7 +62,7 @@ function onWindowResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 
-	renderer.setSize(sizeX = window.innerWidth-24, sizeY = window.innerHeight-24);
+	renderer.setSize(sizeX = window.innerWidth, sizeY = window.innerHeight);
 
 }
 
@@ -81,14 +77,16 @@ export function animate() {
 	
 	raycaster.setFromCamera( mouse, camera );
 	var intersect = raycaster.intersectObjects(scene.children)[0];
+	if(intersect && intersect.object instanceof Mesh && intersect.object.userData.triangle)
+		document.getElementById('textHelper').innerText = intersect.object.userData.triangle.uid;
 	if(intersect) {/*
 		var targetDistance = intersect.distance,
 			verts = intersect.object.geometry.vertices,
 			closest = null, minDist;
 		if(verts) {
 			for(let i=0; i<3; ++i) {
-				let line = new THREE.Line3(verts[(i+1)%3], verts[(i+2)%3]),
-					target = new THREE.Vector3(),
+				let line = new Line3(verts[(i+1)%3], verts[(i+2)%3]),
+					target = new Vector3(),
 					lineClosest = line.closestPointToPoint(intersect.point, false, target),
 					dist = lineClosest.distanceTo(intersect.point);
 				if(closest === null || dist < minDist) {
@@ -108,18 +106,16 @@ export function animate() {
 }
 
 function render() {
-
-	camera.lookAt( scene.position );
+	camera.lookAt(scene.position);
 	camera.updateMatrixWorld();
 	
-	renderer.render( scene, camera );
-
+	renderer.render(scene, camera);
 }
 
 class D3Rendered {
-	line: THREE.Line;
-	mesh: THREE.Mesh;
-	constructor(line: THREE.Line, mesh: THREE.Mesh) {
+	line: Line;
+	mesh: Mesh;
+	constructor(line: Line, mesh: Mesh) {
 		this.line = line;
 		this.mesh = mesh;
 	}
@@ -131,57 +127,58 @@ class D3Rendered {
 	}
 }
 
-export function createFace(data: [Point, Point, Point]): D3Rendered {
+export function createFace(face: Triangle): D3Rendered {
+	let data = face.points;
 	let positions = [];
 	let normals = [];
 	var colrsV = [];
 
 	for(let d of data) {
 		positions.push(...d.coords);
-		colrsV.push(...d.colors);
+		colrsV.push(...d.color);
 	}
+
+	let geometry = new Geometry();
+	geometry.vertices.push(...data.map(p=> new Vector3(...p.coords)));
+	var face3 = new Face3(0, 1, 2);
+	face3.vertexColors = data.map(p=> new Color(...p.color));
+	geometry.faces.push(face3);
 	
-	pA.set(data[0].coords[0], data[0].coords[1], data[0].coords[2]);
-	pB.set(data[1].coords[0], data[1].coords[1], data[1].coords[2]);
-	pC.set(data[2].coords[0], data[2].coords[1], data[2].coords[2]);
-
-	cb.subVectors( pC, pB );
-	ab.subVectors( pA, pB );
-	cb.cross( ab );
-
-	cb.normalize();
-
-	var nx = cb.x;
-	var ny = cb.y;
-	var nz = cb.z;
-
-	normals.push(nx, ny, nz);
-	normals.push(nx, ny, nz);
-	normals.push(nx, ny, nz);
-
-	let geometry = new THREE.BufferGeometry();
-	geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-	geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-	geometry.setAttribute('color', new THREE.Float32BufferAttribute(colrsV, 3));
-	geometry.computeBoundingSphere();
-
-	let mesh = new THREE.Mesh( geometry, meshMaterial );
-
-	geometry = new THREE.BufferGeometry();
+	let mesh = new Mesh( geometry, meshMaterial );
+	mesh.userData.triangle = face;
+	let bGgeometry = new THREE.BufferGeometry();
 	positions.push(...data[0].coords);
-	geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-	geometry.setAttribute('color', new THREE.Float32BufferAttribute(white, 3));
-	geometry.computeBoundingSphere();
+	bGgeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+	bGgeometry.setAttribute('color', new THREE.Float32BufferAttribute(white, 3));
+	bGgeometry.computeBoundingSphere();
 
-	let line = new THREE.Line(geometry, wireMaterial);
+	let line = new Line(bGgeometry, wireMaterial);
 	return new D3Rendered(line, mesh);
 }
 
-class EdgeData {}
+class EdgeData {
+	apparentSize: number
+}
 
-export class Edge extends GEdge<EdgeData, Point> {}
-export class Triangle extends GTriangle<D3Rendered, EdgeData, Point> {}
+function projected(x: number, y: number, z: number) {
+	var p = new Vector3(x, y, z),
+		vector = p.project(camera);
+
+	vector.x = (vector.x + 1) / 2;
+	vector.y = -(vector.y - 1) / 2;
+
+	return vector;
+}
+export type Edge = GEdge<EdgeData, Point>;
+export type Triangle = GTriangle<D3Rendered, EdgeData, Point>;
 export class TerraMap extends GTerraMap<D3Rendered, EdgeData, Point> {
+	apparentSize(edge: Edge): number {
+		var ps = edge.ends.map(p=> projected(...p.coords)),
+			dx = ps[0].x-ps[1].x,
+			dy = ps[0].y-ps[1].y;
+		
+		return Math.sqrt(dx*dx+dy*dy);
+	}
 	constructor(scale: number = 1) {
 		super(middle(scale));
 	}
@@ -193,8 +190,8 @@ function reposition() {
 	camera.position.normalize().multiplyScalar(radius);
 }
 var mbDown: {x: number, y: number},
-	raycaster = new THREE.Raycaster(),
-	mouse = new THREE.Vector2(), intersected,
+	raycaster = new Raycaster(),
+	mouse = new Vector2(), intersected,
 	radius = 2750, theta = 0, highLine = null,
 	sizeX, sizeY,
 	highlighted;
@@ -212,12 +209,7 @@ window.addEventListener('wheel', event => {
 	radius += event.deltaY>0?wheelDistance:-wheelDistance;
 	reposition();
 });
-var clickHandler = null;
-export function handleClick(cb: ()=> void) {
-	clickHandler = cb;
-}
 window.addEventListener('mouseup', event=> {
-	if(0=== event.button && clickHandler) clickHandler();
 	if(1=== event.button) mbDown = null;
 	return false;
 });

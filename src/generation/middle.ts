@@ -5,12 +5,12 @@ export type Coords = [number, number, number];
 
 export class Point {
 	coords: Coords
-	colors: Coords
-	constructor(coords: Coords, height: number, colors: Coords) {
+	color: Coords
+	constructor(coords: Coords, height: number, color: Coords) {
 		let [x, y, z] = coords;
 		let actualHeight = Math.sqrt(x*x + y*y + z*z);
 		this.coords = <Coords>coords.map(x => x * height/actualHeight);
-		this.colors = colors;
+		this.color = color;
 	}
 	@LazyGetter()
 	get height(): number {
@@ -32,7 +32,7 @@ export default (scale: number = 1): Generation<Point>=> {
 			return new Point(
 				<Coords>[0,1,2].map(i=> (points[0].coords[i]+points[1].coords[i])/2),
 				(points[0].height+points[1].height)/2,
-				<Coords>points[0].colors.map((c, i)=> (c+points[1].colors[i])/2)
+				<Coords>points[0].color.map((c, i)=> (c+points[1].color[i])/2)
 			);
 		}
 	};
